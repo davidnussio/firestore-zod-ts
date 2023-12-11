@@ -50,7 +50,7 @@ export async function* getAsycGeneratorFromQuery<T>(
   startQuery: FirebaseFirestore.Query,
   schema: z.ZodType<T>,
   { limit = 10, maxCount = 1000 }: { limit?: number; maxCount?: number } = {}
-): AsyncGenerator<T, T, void> {
+): AsyncGenerator<T, void, void> {
   let count = 0;
   let data = [];
   let lastLoadedDoc = undefined;
