@@ -42,21 +42,21 @@ async function addUser(userData: UserType) {
 
 async function main() {
   console.log("-----");
-  // for await (const user of getAsycGeneratorFromQuery(
-  //   usersCollection.where("age", ">=", 44).orderBy("age", "desc"),
-  //   UserDocSchema,
-  //   { limit: 10, maxCount: 1000 }
-  // )) {
-  //   console.log("   <-", user.age, user.name);
-  // }
+  for await (const user of getAsycGeneratorFromQuery(
+    usersCollection.where("age", ">=", 44).orderBy("age", "desc"),
+    UserDocSchema,
+    { limit: 10, maxCount: 1000 }
+  )) {
+    console.log("   <-", user.age, user.name);
+  }
   // const users = await getUsers({ limit: 10 });
   // console.log(`- Users: ${users.length}`);
   // users.forEach((user) => console.log(user.age, user.email));
   // console.log("-----");
-  const user = await getUser("c4w0vyEz1g8kUK20OnWT");
-  console.log("- User with id: c4w0vyEz1g8kUK20OnWT");
+  const user = await getUser("3jqBrsfKtTbn5ItP54rXTN2WxOi1");
+  console.log("- User with id: 3jqBrsfKtTbn5ItP54rXTN2WxOi1");
   console.log(user);
-  // console.log("-----");
+  console.log("-----");
   // for (let i = 0; i < 33; i++) {
   //   await addUser({
   //     name: faker.person.fullName(),

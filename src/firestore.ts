@@ -1,10 +1,17 @@
+import { credential } from "firebase-admin";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { z } from "zod";
 
 // Skip initialization if already initialized and hot-reloading problems
 if (getApps().length === 0) {
+  console.log("Initializing Firebase app...", process.env.PROJECT_ID);
   initializeApp({
     projectId: process.env.PROJECT_ID,
+    credential: credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, "\n"),
+    }),
   });
 }
 
@@ -35,6 +42,11 @@ export async function getDataFromQuery<T>(
 export function mapWithSchema<T>(schema: z.ZodType<T>) {
   return (doc: FirebaseFirestore.DocumentData): T => {
     const data = doc.data();
+
+    console.log(data);
+    if (!data) {
+      throw new Error(`Document with id ${doc.id} has no data`);
+    }
 
     return schema.parse({
       id: doc.id,
