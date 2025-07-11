@@ -1,9 +1,10 @@
 {
-  "name": "firestore-zod-ts",
+  "name": "firestore-effect-schema-ts",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prepare": "ts-patch install -s",
     "start": "tsx src/index.ts"
   },
   "keywords": [],
@@ -11,14 +12,17 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.6.1",
+    "effect": "^3.16.12",
     "firebase-admin": "^12.7.0",
+    "ts-patch": "^3.3.0",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3",
-    "zod": "^3.25.75"
+    "typescript": "^5.0.0"
   },
   "devDependencies": {
+    "@effect/language-service": "^0.23.5",
     "@faker-js/faker": "^8.4.1",
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

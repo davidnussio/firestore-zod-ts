@@ -1,59 +1,71 @@
+import { Schema } from "effect/index";
 import { getFirestore } from "firebase-admin/firestore";
-import { z } from "zod";
-import { FirebaseSchema } from "./firestore";
+import { FirebaseSchema, FirestoreDate } from "./firestore";
 
+// Convert "on"/"off" to boolean and back
 const db = getFirestore();
 
 export const usersCollection = db.collection("users");
 
-export const AddressSchema = z.object({
-  phone: z.string().optional(),
-  street2: z.string().optional(),
-  city: z.string().optional(),
-  street: z.string().optional(),
-  countryRegion: z.string().optional(),
-  postalCode: z.string().optional(),
-  stateProvince: z.string().optional(),
-});
-export type Address = z.infer<typeof AddressSchema>;
+const NullishString = Schema.NullishOr(Schema.String);
 
-export const TeamSchema = z.object({
-  name: z.string().optional(),
-  gid: z.string().optional(),
+export const AddressSchema = Schema.Struct({
+  phone: NullishString,
+  street2: NullishString,
+  city: NullishString,
+  street: NullishString,
+  countryRegion: NullishString,
+  postalCode: NullishString,
+  stateProvince: NullishString,
 });
-export type Team = z.infer<typeof TeamSchema>;
+export type Address = Schema.Schema.Type<typeof AddressSchema>;
 
-export const UserSchema = z.object({
-  uid: z.string().optional(),
-  acceptedMailing: z.null().optional(),
-  emailVerified: z.boolean().optional(),
-  photoUrl: z.null().optional(),
-  accessLevel: z.number().optional(),
-  disabled: z.boolean().optional(),
-  email: z.string().optional(),
-  registred: z.boolean().optional(),
-  acceptedTerms: z.unknown().optional(),
-  displayName: z.string().optional(),
+export const TeamSchema = Schema.Struct({
+  name: Schema.String,
+  gid: Schema.String,
 });
-export type User = z.infer<typeof UserSchema>;
+export type Team = Schema.Schema.Type<typeof TeamSchema>;
 
-export const AccountSchema = z.object({
-  language: z.string().optional(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  address: AddressSchema.optional(),
-  phone: z.string().optional(),
+export const UserSchema = Schema.Struct({
+  uid: Schema.String,
+  acceptedMailing: Schema.NullishOr(FirestoreDate),
+  emailVerified: Schema.Boolean,
+  photoUrl: NullishString,
+  accessLevel: Schema.Number,
+  disabled: Schema.Boolean,
+  email: Schema.String,
+  registred: Schema.Boolean,
+  acceptedTerms: Schema.Unknown,
+  displayName: Schema.NullishOr(Schema.String),
 });
-export type Account = z.infer<typeof AccountSchema>;
+export type User = Schema.Schema.Type<typeof UserSchema>;
 
-export const WelcomeSchema = z.object({
-  createdAt: z.unknown().optional(),
-  account: AccountSchema.optional(),
-  user: UserSchema.optional(),
-  teams: z.array(TeamSchema).optional(),
-  teamsId: z.array(z.string()).optional(),
+export const AccountSchema = Schema.Struct({
+  language: Schema.String,
+  firstName: Schema.String,
+  lastName: Schema.String,
+  address: AddressSchema,
+  phone: NullishString,
 });
-export type Welcome = z.infer<typeof WelcomeSchema>;
+export type Account = Schema.Schema.Type<typeof AccountSchema>;
 
-export const UserDocSchema = WelcomeSchema.merge(FirebaseSchema);
-export type UserDocType = z.infer<typeof UserDocSchema>;
+export const WelcomeSchema = Schema.Struct({
+  createdAt: Schema.Unknown,
+  account: AccountSchema,
+  user: UserSchema,
+  teams: Schema.Array(TeamSchema),
+  teamsId: Schema.Array(Schema.String),
+});
+export type Welcome = Schema.Schema.Type<typeof WelcomeSchema>;
+
+export const UserDocSchema = Schema.extend(
+  FirebaseSchema,
+  Schema.Struct({
+    account: AccountSchema,
+    user: UserSchema,
+    teams: Schema.Array(TeamSchema),
+    teamsId: Schema.Array(Schema.String),
+    id: Schema.String,
+  })
+);
+export type UserDocType = Schema.Schema.Type<typeof UserDocSchema>;

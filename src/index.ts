@@ -1,20 +1,18 @@
 import "dotenv/config";
-import { z } from "zod";
-import { faker } from "@faker-js/faker";
+import { Effect, Schema, Stream } from "effect/index";
 import {
-  FirebaseSchema,
-  getAsycGeneratorFromQuery,
+  getAsyncGeneratorFromQuery,
   getDataFromDoc,
   getDataFromQuery,
-  mapWithSchema,
 } from "./firestore";
 import {
   UserDocSchema,
-  UserDocType,
+  type UserDocType,
   UserSchema,
-  UserType,
+  type User,
   usersCollection,
 } from "./models";
+import { getDataEffect } from "./effect";
 
 async function getUsers({
   limit = 10,
@@ -31,10 +29,13 @@ async function getUser(id: string) {
   return getDataFromDoc(usersCollection.doc(id), UserDocSchema);
 }
 
-async function addUser(userData: UserType) {
+async function addUser(userData: User) {
   try {
-    const parsedData = UserSchema.parse(userData);
-    await usersCollection.add(parsedData);
+    const result = Schema.decodeUnknownEither(UserSchema)(userData);
+    if (result._tag === "Left") {
+      throw new Error(`Validation failed: ${result.left}`);
+    }
+    await usersCollection.add(result.right);
   } catch (error) {
     console.error("Validation failed", error);
   }
@@ -42,28 +43,62 @@ async function addUser(userData: UserType) {
 
 async function main() {
   console.log("-----");
-  for await (const user of getAsycGeneratorFromQuery(
-    usersCollection.where("age", ">=", 44).orderBy("age", "desc"),
+  let count = 0;
+  for await (const user of getAsyncGeneratorFromQuery(
+    usersCollection
+      .where("user.accessLevel", ">=", 8)
+      .orderBy("user.accessLevel", "desc"),
     UserDocSchema,
-    { limit: 10, maxCount: 1000 }
+    { limit: 4, maxCount: 1000 }
   )) {
-    console.log("   <-", user.age, user.name);
+    count++;
+    console.log(`${count}   <-`, user.user.email);
+    if (count >= 20) {
+      break;
+    }
   }
+
+  // await addUser({
+  //   // uid: "test123",
+  //   email: "test@example.com",
+  // });
+
   // const users = await getUsers({ limit: 10 });
-  // console.log(`- Users: ${users.length}`);
-  // users.forEach((user) => console.log(user.age, user.email));
   // console.log("-----");
-  const user = await getUser("3jqBrsfKtTbn5ItP54rXTN2WxOi1");
-  console.log("- User with id: 3jqBrsfKtTbn5ItP54rXTN2WxOi1");
-  console.log(user);
-  console.log("-----");
-  // for (let i = 0; i < 33; i++) {
-  //   await addUser({
-  //     name: faker.person.fullName(),
-  //     email: faker.internet.email(),
-  //     age: faker.number.int({ min: 18, max: 100 }),
-  //   });
+  // console.log("Users with age > 40:");
+  // for (const user of users) {
+  //   console.log("   <-", user.user);
   // }
+
+  // const user = await getUser("3jqBrsfKtTbn5ItP54rXTN2WxOi1");
+  // console.log("- User with id: 3jqBrsfKtTbn5ItP54rXTN2WxOi1");
+  // console.log(user);
+  // console.log("-----");
 }
 
-main();
+//main();
+
+const program = Effect.gen(function* () {
+  const startQuery = usersCollection
+    .where("user.accessLevel", ">=", 8)
+    .orderBy("user.accessLevel", "desc");
+
+  const data = yield* Stream.runCollect(
+    getDataEffect(startQuery, UserDocSchema).pipe(Stream.take(20))
+  );
+
+  yield* Effect.log("Data loaded from Firestore:", data.length, "documents");
+
+  for (const user of data) {
+    yield* Effect.log("User email:", user.user.email);
+  }
+  return data;
+});
+
+Effect.runPromise(program)
+  .then((result) => {
+    console.log("Program completed successfully:", result);
+  })
+  .catch((error) => {
+    console.error("Program failed with error:", error);
+  });
