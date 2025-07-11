@@ -1,49 +1,6 @@
 import { Schema } from "effect/index";
-import { DateTimeUtcFromDate } from "effect/Schema";
-import { credential } from "firebase-admin";
-import { getApps, initializeApp } from "firebase-admin/app";
-import { Timestamp } from "firebase-admin/firestore";
 
-// Skip initialization if already initialized and hot-reloading problems
-if (getApps().length === 0) {
-  console.log("Initializing Firebase app...", process.env.PROJECT_ID);
-  initializeApp({
-    projectId: process.env.PROJECT_ID!,
-    credential: credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID!,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n") || "",
-    }),
-  });
-}
 
-/**
- * Uno schema che rappresenta un Timestamp di Firestore.
- * Valida che il valore in input sia un'istanza della classe Timestamp.
- */
-const FirestoreTimestamp = Schema.instanceOf(Timestamp);
-
-/**
- * Uno schema che trasforma un Timestamp di Firestore in un oggetto Date e viceversa.
- * - `decode`: Timestamp (input da Firestore) -> Date (output per la tua app)
- * - `encode`: Date (input dalla tua app) -> Timestamp (output per Firestore)
- */
-export const FirestoreDate = Schema.transform(
-  FirestoreTimestamp, // Lo schema di partenza (From)
-  DateTimeUtcFromDate, // Lo schema di arrivo (To)
-  {
-    strict: true,
-    decode: (timestamp) => timestamp.toDate(),
-    encode: (date) => Timestamp.fromDate(date),
-  }
-);
-
-export const FirebaseSchema = Schema.Struct({
-  id: Schema.String,
-  createTime: Schema.DateFromSelf,
-  updateTime: Schema.DateFromSelf,
-  readTime: Schema.DateFromSelf,
-});
 
 export async function getDataFromDoc<A, I = A, R = never>(
   documentRef: FirebaseFirestore.DocumentReference,
@@ -116,9 +73,13 @@ export async function* getAsyncGeneratorFromQuery<A, I = A, R = never>(
   }
 
   while (true) {
-    console.log("######## Loading next batch...");
+    console.log("#####################################");
+    console.log("######## Loading next batch #########");
+    console.log("#####################################");
     const query = getNextQuery(lastLoadedDoc);
-    const snapshot = await query.get();
+    const snapshot = await query.get().catch((error) => {
+      throw new Error(`Error fetching data from Firestore: ${error.message}`);
+    });
     lastLoadedDoc = snapshot.docs[snapshot.docs.length - 1];
     data = snapshot.docs.map(mapWithSchema(schema));
 
@@ -129,7 +90,7 @@ export async function* getAsyncGeneratorFromQuery<A, I = A, R = never>(
     }
 
     for (const user of data) {
-      console.log(".  * Yielding user:");
+      console.log("  *");
       yield user;
     }
   }

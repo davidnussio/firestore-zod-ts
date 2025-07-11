@@ -1,4 +1,4 @@
-import { Chunk, Schema, Stream } from "effect/index";
+import { type Chunk, type Schema, Stream } from "effect/index";
 import { getAsyncGeneratorFromQuery } from "./firestore";
 
 /**

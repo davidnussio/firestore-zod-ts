@@ -1,11 +1,5 @@
 import { Schema } from "effect/index";
-import { getFirestore } from "firebase-admin/firestore";
-import { FirebaseSchema, FirestoreDate } from "./firestore";
-
-// Convert "on"/"off" to boolean and back
-const db = getFirestore();
-
-export const usersCollection = db.collection("users");
+import { FirebaseSchema, FirestoreDate } from "./firebase";
 
 const NullishString = Schema.NullishOr(Schema.String);
 
@@ -28,7 +22,7 @@ export type Team = Schema.Schema.Type<typeof TeamSchema>;
 
 export const UserSchema = Schema.Struct({
   uid: Schema.String,
-  acceptedMailing: Schema.NullishOr(FirestoreDate),
+  acceptedMailing: Schema.NullOr(FirestoreDate),
   emailVerified: Schema.Boolean,
   photoUrl: NullishString,
   accessLevel: Schema.Number,
@@ -58,14 +52,13 @@ export const WelcomeSchema = Schema.Struct({
 });
 export type Welcome = Schema.Schema.Type<typeof WelcomeSchema>;
 
-export const UserDocSchema = Schema.extend(
-  FirebaseSchema,
-  Schema.Struct({
-    account: AccountSchema,
-    user: UserSchema,
-    teams: Schema.Array(TeamSchema),
-    teamsId: Schema.Array(Schema.String),
-    id: Schema.String,
-  })
-);
+export const UserDocSchema = Schema.Struct({
+  ...FirebaseSchema.fields,
+  account: AccountSchema,
+  user: UserSchema,
+  teams: Schema.Array(TeamSchema),
+  teamsId: Schema.Array(Schema.String),
+  id: Schema.String,
+});
+
 export type UserDocType = Schema.Schema.Type<typeof UserDocSchema>;

@@ -1,3 +1,3 @@
-# FIRESTORE plus Zod playground
+# FIRESTORE plus Effect playground
 
-Try some use cases of firestore, zod and typescript.
+Try some use cases of firestore, effect and typescript.

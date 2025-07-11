@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@effect/platform": "^0.87.12",
+    "@effect/platform-node": "^0.89.5",
     "dotenv": "^16.6.1",
     "effect": "^3.16.12",
     "firebase-admin": "^12.7.0",
@@ -21,6 +23,7 @@
   "devDependencies": {
     "@effect/language-service": "^0.23.5",
     "@faker-js/faker": "^8.4.1",
+    "@types/node": "^24.0.13",
     "bun-types": "latest",
     "typescript": "^5.8.3"
   },
