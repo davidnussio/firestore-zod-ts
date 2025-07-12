@@ -1,32 +1,19 @@
-import { Schema } from "effect/index";
+import { Data, Effect, type ParseResult, Schema } from "effect/index";
 
+export class DocumentNotFoundError extends Data.TaggedError(
+  "DocumentNotFoundError"
+)<{
+  documentId: string;
+}> {}
 
-
-export async function getDataFromDoc<A, I = A, R = never>(
-  documentRef: FirebaseFirestore.DocumentReference,
-  schema: Schema.Schema<A, I, R>
-): Promise<A> {
-  const doc = await documentRef.get();
-  const data = mapWithSchema(schema)(doc);
-  return data;
-}
-export async function getDataFromQuery<A, I = A, R = never>(
-  query: FirebaseFirestore.Query,
-  schema: Schema.Schema<A, I, R>
-) {
-  const snapshot = await query.get();
-  const data = snapshot.docs.map(mapWithSchema(schema));
-  return data;
-}
-
-export function mapWithSchema<A, I = A, R = never>(
-  schema: Schema.Schema<A, I, R>
-) {
-  return (doc: FirebaseFirestore.DocumentData): A => {
+export function mapWithSchema<A, I = A>(schema: Schema.Schema<A, I, never>) {
+  return (
+    doc: FirebaseFirestore.DocumentData
+  ): Effect.Effect<A, DocumentNotFoundError | ParseResult.ParseError> => {
     const data = doc.data();
 
     if (!data) {
-      throw new Error(`Document with id ${doc.id} has no data`);
+      return Effect.fail(new DocumentNotFoundError({ documentId: doc.id }));
     }
 
     const input = {
@@ -37,23 +24,15 @@ export function mapWithSchema<A, I = A, R = never>(
       ...data,
     };
 
-    const result = Schema.decodeUnknownEither(
-      schema as Schema.Schema<A, I, never>
-    )(input);
-    if (result._tag === "Left") {
-      throw new Error(`Schema validation failed: ${result.left}`);
-    }
-    return result.right;
+    return Schema.decodeUnknown(schema)(input);
   };
 }
 
-export async function* getAsyncGeneratorFromQuery<A, I = A, R = never>(
+export async function* getAsyncGeneratorFromQuery(
   startQuery: FirebaseFirestore.Query,
-  schema: Schema.Schema<A, I, R>,
   { limit = 10, maxCount = 1000 }: { limit?: number; maxCount?: number } = {}
-): AsyncGenerator<A, void, void> {
+): AsyncGenerator<FirebaseFirestore.DocumentData, void, void> {
   let count = 0;
-  let data: A[] = [];
   let lastLoadedDoc:
     | FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>
     | undefined;
@@ -81,7 +60,8 @@ export async function* getAsyncGeneratorFromQuery<A, I = A, R = never>(
       throw new Error(`Error fetching data from Firestore: ${error.message}`);
     });
     lastLoadedDoc = snapshot.docs[snapshot.docs.length - 1];
-    data = snapshot.docs.map(mapWithSchema(schema));
+
+    const data = snapshot.docs;
 
     count += data.length;
 
@@ -90,7 +70,7 @@ export async function* getAsyncGeneratorFromQuery<A, I = A, R = never>(
     }
 
     for (const user of data) {
-      console.log("  *");
+      console.log(`  #### yield data from async generator ${user.id}}`);
       yield user;
     }
   }
